@@ -44,36 +44,40 @@
       const allData = [];
 
       // 함수: 최종 데이터 조회 및 엑셀로 저장
-      const fetchAndSaveFinalData = async (sggCode, sggName, dongCode, dongName, currentPage) => {
-        // 반복문을 통해 최대 페이지까지 데이터를 가져오기
-        while (true) {
-          const finalParams = {
-            search_gbn,
-            page_no: currentPage,
-            reg_name: `서울특별시 ${sggName} ${dongName}`,
-            search_cd,
-            sreg: sggCode,
-            seub: dongCode,
-            year,
-            old_reg,
-            old_eub,
-            gbn,
-            tabGbn
-          };
+      const fetchAndSaveFinalData = async (sggCode, sggName, dongCode, dongName) => {
+  let currentPage = 1;
 
-          const finalResponse = await fetch(`${finalUrl}?${new URLSearchParams(finalParams).toString()}`);
-          const finalData = await finalResponse.json();
+  // 반복문을 통해 최대 페이지까지 데이터를 가져오기
+  while (true) {
+    const finalParams = {
+      search_gbn,
+      page_no: currentPage,
+      reg_name: `서울특별시 ${sggName} ${dongName}`,
+      search_cd,
+      sreg: sggCode,
+      seub: dongCode,
+      year,
+      old_reg,
+      old_eub,
+      gbn,
+      tabGbn
+    };
 
-          // finalData.model.list가 null 또는 undefined일 경우 처리
-          if (finalData.model.list && Array.isArray(finalData.model.list) && finalData.model.list.length > 0) {
-            // 데이터를 전체 데이터에 추가
-            allData.push(...finalData.model.list);
-            currentPage++; // 다음 페이지로 이동
-          } else {
-            break; // 더 이상 데이터가 없으면 반복문 종료
-          }
-        }
-      };
+    const finalResponse = await fetch(`${finalUrl}?${new URLSearchParams(finalParams).toString()}`);
+    const finalData = await finalResponse.json();
+
+    // finalData.model.list가 null 또는 undefined일 경우 처리
+    if (finalData.model.list && Array.isArray(finalData.model.list) && finalData.model.list.length > 0) {
+      // 데이터를 전체 데이터에 추가
+      allData.push(...finalData.model.list);
+      currentPage++; // 다음 페이지로 이동
+    } else {
+      console.error(`No data found for ${sggName} ${dongName}`);
+      break; // 더 이상 데이터가 없으면 반복문 종료
+    }
+  }
+};
+
 
       // 함수: 모든 구의 동 정보 조회 및 엑셀 파일로 저장
       const fetchAndSaveAllDongData = async () => {
