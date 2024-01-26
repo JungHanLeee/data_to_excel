@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fetch and Save Data to Excel</title>
+</head>
+<body>
+  <button id="fetchAndSaveButton">Fetch and Save Data</button>
+  <select id="yearSelect"></select>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+  <script>
+    let selectedYear = '';
+    const yearSelect = document.getElementById('yearSelect');
+    const startYear = 1996;
+    const endYear = 2024;
+
+    for (let year = startYear; year <= endYear; year++) {
+      const option = document.createElement('option');
+      option.value = year;
+      option.text = year;
+      option.id = `yearOption_${year}`;
+      yearSelect.appendChild(option);
+    }
+
+    yearSelect.addEventListener('change', function () {
+      selectedYear = parseInt(yearSelect.value, 10);
+    });
+
+    document.getElementById('fetchAndSaveButton').addEventListener('click', async () => {
+      const baseUrl = 'https://www.realtyprice.kr/notice/bjd/searchBjd.bjd';
+      const finalUrl = 'https://www.realtyprice.kr/notice/search/gssSearchList.search';
+
+      const gbn = 1;
+      const search_gbn = '';
+      const search_cd = '';
+      const old_reg = '00000';
+      const old_eub = '00000';
+      const tabGbn = 'Text';
+      const sido = 11;
+      const year = selectedYear;
+
+      // 엑셀 파일 전체 데이터
+      const allData = [];
+
+      // 함수: 최종 데이터 조회 및 엑셀로 저장
+      const fetchAndSaveFinalData = async (sggCode, sggName, dongCode, dongName) => {
+  let currentPage = 1;
+
+  // 반복문을 통해 최대 페이지까지 데이터를 가져오기
+  while (true) {
+    const finalParams = {
+      search_gbn,
+      page_no: currentPage,
+      reg_name: `서울특별시 ${sggName} ${dongName}`,
+      search_cd,
+      sreg: sggCode,
+      seub: dongCode,
+      year,
+      old_reg,
+      old_eub,
+      gbn,
+      tabGbn
+    };
+
+    const finalResponse = await fetch(`${finalUrl}?${new URLSearchParams(finalParams).toString()}`);
+    const finalData = await finalResponse.json();
+
+    // finalData.model.list가 null 또는 undefined일 경우 처리
+    if (finalData.model.list && Array.isArray(finalData.model.list) && finalData.model.list.length > 0) {
+      // 데이터를 전체 데이터에 추가
+      allData.push(...finalData.model.list);
+      currentPage++; // 다음 페이지로 이동
+    } else {
+      console.error(`No data found for ${sggName} ${dongName}`);
+      break; // 더 이상 데이터가 없으면 반복문 종료
+    }
+  }
+};
+
+
+      // 함수: 모든 구의 동 정보 조회 및 엑셀 파일로 저장
+      const fetchAndSaveAllDongData = async () => {
+        const sggParams = {
+          gbn,
+          gubun: 'sgg',
+          addr_gbn: '',
+          sido,
+          sgg: '',
+          eub: '',
+          year,
+          sido_list: sido
+        };
+
+        const sggResponse = await fetch(`${baseUrl}?${new URLSearchParams(sggParams).toString()}`);
+        const sggData = await sggResponse.json();
+
+        // Promise 배열 생성
+        const promises = sggData.model.list.map(async (sgg) => {
+          const dongParams = {
+            gbn,
+            gubun: 'eub',
+            addr_gbn: '',
+            sido,
+            sgg: sgg.reg,
+            eub: '',
+            year,
+            sido_list: sido
+          };
+
+          const dongResponse = await fetch(`${baseUrl}?${new URLSearchParams(dongParams).toString()}`);
+          const dongData = await dongResponse.json();
+
+          // Promise 배열 생성
+          const dongPromises = dongData.model.list.map(async (dong) => {
+            await fetchAndSaveFinalData(sgg.reg, sgg.name, dong.code, dong.name, 1); // 페이지 초기값은 1
+          });
+
+          // 동 데이터 병렬 처리
+          await Promise.all(dongPromises);
+        });
+
+        // 구 데이터 병렬 처리
+        await Promise.all(promises);
+
+        // 모든 데이터를 엑셀로 저장
+        saveToExcel();
+      };
+
+      // 함수: 엑셀 파일로 저장
+      const saveToExcel = () => {
+        const ws = XLSX.utils.json_to_sheet(allData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet 1');
+        XLSX.writeFile(wb, 'allData.xlsx');
+        console.log(`Data saved to allData.xlsx`);
+      };
+
+      // 실행
+      fetchAndSaveAllDongData();
+    });
+  </script>
+</body>
+</html>
