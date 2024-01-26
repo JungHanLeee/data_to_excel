@@ -7,9 +7,32 @@
 </head>
 <body>
   <button id="fetchAndSaveButton">Fetch and Save Data</button>
+  <select id="yearSelect">
+  </select>
+  <script>
+    let selectedYear = '';
 
+    const yearSelect = document.getElementById('yearSelect');
+    
+
+    const startYear = 1996;
+    const endYear = 2024;
+
+    for(let year = startYear; year<=endYear; year++) {
+      const option = document.createElement('option');
+      option.value = year;
+      option.text = year;
+      option.id = `yearOption_${year}`;
+      yearSelect.appendChild(option);
+    } 
+
+    yearSelect.addEventListener('change', function() {
+      const select = parseInt(yearSelect.value, 10);
+    })
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
   <script>
+
     document.getElementById('fetchAndSaveButton').addEventListener('click', async () => {
       const baseUrl = 'https://cors-anywhere.herokuapp.com/https://www.realtyprice.kr/notice/bjd/searchBjd.bjd';
       const finalUrl = 'https://cors-anywhere.herokuapp.com/https://www.realtyprice.kr/notice/search/gssSearchList.search';
@@ -22,7 +45,7 @@
       const old_eub = '00000';
       const tabGbn = 'Text';
       const sido = 11;
-      const year = 2024;
+      const year = selectedYear;
 
       // 엑셀 파일 전체 데이터
       const allData = [];
